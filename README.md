@@ -1,25 +1,12 @@
-# My Python repo
-<!--- Adding a one-line description of what this repository is for here may be
-helpful -->
-<!---
+# Welcome to GHG forcing for CMIP
 
-We recommend having a status line in your repo to tell anyone who stumbles
-on your repository where you're up to. Some suggested options:
+Let's hit the ground running! This repo is currently used as an onboarding project meant to familiarize me with the basic concepts required to work on GHG forcing for CMIP. Specifically, comparing satellite and ground-based measurements of GHG emissions using a basic fit.
 
-- prototype: the project is just starting up and the code is all prototype
-- development: the project is actively being worked on
-- finished: the project has achieved what it wanted and is no longer being
-  worked on, we won't reply to any issues
-- dormant: the project is no longer worked on but we might come back to it, if
-  you have questions, feel free to raise an issue
-- abandoned: this project is no longer worked on and we won't reply to any
-  issues
-
--->
+In the future, this project should contain the clean, well documented pipeline to compute GHG forcings for CMIP.
 
 ## Status
 
-- prototype: the project is just starting up and the code is all prototype
+- onboarding: the project is currently used for learning 
 
 ## Installation
 
@@ -57,27 +44,12 @@ As another example, to run a notebook server, run
 pixi run jupyter lab
 ```
 
-<!--- Other documentation and instructions can then be added here as you go,
-perhaps replacing the other instructions above as they may become redundant.
--->
 
-## Development
-
-<!--- In bigger projects, we would recommend having separate docs where this
-development information can go. However, for such a simple repository, having
-it all in the README is fine. -->
-
-Install and run instructions are the same as the above (this is a simple
-repository, without tests etc. so there are no development-only dependencies).
 
 ### Contributing
 
-This is a very thin repository. There aren't any strict guidelines for
-contributing, partly because we don't know what we're trying to achieve (we're
-just exploring). If you would like to contribute, it is best to raise an issue
-to discuss what you want to do (without a discussion, we can't guarantee that
-any contribution can actually be used).
-<!--- You may want to update this section as the project evolves. -->
+TBD
+
 
 ### Repository structure
 
