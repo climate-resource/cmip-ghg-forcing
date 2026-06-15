@@ -1,0 +1,11 @@
+# Changes here will be overwritten by Copier
+_commit: v0.6.1
+_src_path: gl:openscm/copier-basic-python-repository
+email: anna.lanteri@climate-resource.com
+local_src: true
+name: Anna Lanteri
+notebooks: true
+package_manager: pixi
+project_description_short: Compare satellite and ground-based measurements of GHG
+    emissions using a basic fit
+project_url: https://github.com/climate-resource/cmip-ghg-forcing.git
