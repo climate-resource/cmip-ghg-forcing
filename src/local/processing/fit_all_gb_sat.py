@@ -1,7 +1,8 @@
-""""
+"""
 
 Calculate scaling factor for all ground based datasets
 """
+
 import numpy as np
 
 from local.processing.utils import (
@@ -17,18 +18,18 @@ from local.processing.utils import (
 )
 
 if __name__ == "__main__":
-    specie = 'ch4'
+    specie = "ch4"
 
     sat_data = get_sat_data(specie)
     agage_files = get_agage_files(specie)
     noaa_files = get_noaa_files(specie)
 
-    all_AGAGE_sat, all_AGAGE_gb, all_AGAGE_lat = get_all_matched_data(agage_files,
-                                                                      sat_data,
-                                                                      specie)
-    all_NOAA_sat, all_NOAA_gb, all_NOAA_lat = get_all_matched_data(noaa_files,
-                                                                   sat_data,
-                                                                   specie)
+    all_AGAGE_sat, all_AGAGE_gb, all_AGAGE_lat = get_all_matched_data(
+        agage_files, sat_data, specie
+    )
+    all_NOAA_sat, all_NOAA_gb, all_NOAA_lat = get_all_matched_data(
+        noaa_files, sat_data, specie
+    )
     all_sat = np.concatenate([all_AGAGE_sat, all_NOAA_sat])
     all_gb = np.concatenate([all_AGAGE_gb, all_NOAA_gb])
     all_lat = np.concatenate([all_AGAGE_lat, all_NOAA_lat])
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     plot_fit(all_sat, all_gb, sf, "all")
 
     # Checking the residuals to see if lat matters
-    plot_residual(all_gb, all_sat, all_lat, sf, title_appendix = 'all')
+    plot_residual(all_gb, all_sat, all_lat, sf, title_appendix="all")
 
     ## Fit depending on lat
     a, b = linear_fit_lat(
@@ -63,22 +64,12 @@ if __name__ == "__main__":
 
     print(f"sf(lat) = {a:.6f} + {b:.6e} * lat")
 
-    residual_old = (
-        all_gb
-        - sf_agage * all_sat
-    )
-
-    residual_new = (
-        all_gb
-        - (a + b*all_lat) * all_sat
-    )
+    residual_old = all_gb - sf_agage * all_sat
+    residual_new = all_gb - (a + b * all_lat) * all_sat
 
     print(np.std(residual_old))
     print(np.std(residual_new))
 
     gb_fit = (a + b * all_lat) * all_sat
 
-    plot_fit_to_obs(all_gb, gb_fit, title = 'observed_vs_fitted_latfit')
-
-
-
+    plot_fit_to_obs(all_gb, gb_fit, title="observed_vs_fitted_latfit")

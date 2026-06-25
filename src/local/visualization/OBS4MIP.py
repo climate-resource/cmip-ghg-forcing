@@ -16,7 +16,7 @@ plots_path = f"{home_path}/code/cmip-ghg-forcing/plots/"
 sat_path = "/home/anna_lanteri/data/satellite_data/OBS4MIPs/"
 sat_data = xr.open_dataset(
     f"{sat_path}/200301_202312-C3S-L3_XCH4-GHG_PRODUCTS-MERGED-MERGED-OBS4MIPS-MERGED-v4.6.nc"
-)  # noqa: E501
+)
 sat_data["xch4"] = sat_data["xch4"].where(sat_data["xch4"] != sat_default, np.nan)
 sat_data["xch4_stderr"] = sat_data["xch4_stderr"].where(
     sat_data["xch4_stderr"] != sat_default, np.nan

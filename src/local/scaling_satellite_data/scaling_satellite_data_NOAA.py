@@ -15,7 +15,7 @@ output_file = f"{data_path}/scaled/OBS4MIPs_to_MLO_basic_fit.nc"
 
 sat_data = xr.open_dataset(
     f"{sat_path}/200301_202312-C3S-L3_XCH4-GHG_PRODUCTS-MERGED-MERGED-OBS4MIPS-MERGED-v4.6.nc"
-)  # noqa: E501
+)
 sat_data["xch4"] = sat_data["xch4"].where(sat_data["xch4"] != sat_default, np.nan)
 
 # Using scaling from one NOAA station for testing purposes
