@@ -16,17 +16,17 @@ TODO:
 
 
 ### Download data
-In the download folder, you can run each of the scripts there to download the corresponding datasets. 
+In the download folder, you can run each of the scripts there to download the corresponding datasets.
 
 ### Visualize data
-Use and modify the scripts in the visualization folder to reproduce useful plots. 
+Use and modify the scripts in the visualization folder to reproduce useful plots.
 
 TODO: finish moving clean plots here
-TODO: add comparison plots/gifs to 
+TODO: add comparison plots/gifs to
 
 ### Process data
 NOT IMPLEMENTED YET
-Here there will be scripts to for example provide a mapping between gb and sat data, 
+Here there will be scripts to for example provide a mapping between gb and sat data,
 
 
 ## Installation

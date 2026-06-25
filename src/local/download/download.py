@@ -20,15 +20,16 @@ logging.basicConfig(level="INFO")
 
 base_url = "https://gml.noaa.gov/aftp/data/greenhouse_gases/"
 
+
 def NOAA_ground_based_data(download_path, config):
     """Download NOAA ground-based data"""
     download_path = Path(download_path).expanduser().absolute()
     os.makedirs(download_path, exist_ok=True)
     print(f"Downloading to: {download_path!s}")
 
-    gas = config['gas']
-    folder = config['folder']
-    sampling = config['sampling']
+    gas = config["gas"]
+    folder = config["folder"]
+    sampling = config["sampling"]
 
     url = f"{base_url}{gas}/{folder}/surface/{gas}_surface-{sampling}_ccgg_netCDF.zip"
 
@@ -41,6 +42,7 @@ def NOAA_ground_based_data(download_path, config):
         f.write(response.content)
 
     logging.info(f"downloaded NOAA-zip ({gas}-{sampling}) to {download_path!s}")
+
 
 def AGAGE_ground_based_data(save_to_path: Path) -> None:
     """
@@ -120,7 +122,8 @@ def AGAGE_ground_based_data(save_to_path: Path) -> None:
         f"downloaded AGAGE-zip to {save_to_path / file_name.replace('.nc', '.zip')!s}"
     )
 
-def satellite_data(download_path:Path , gas: str):
+
+def satellite_data(download_path: Path, gas: str):
     """Download satellite data from ECMWF"""
     download_path = Path(download_path).expanduser().absolute()
     print(f"Downloading to: {download_path!s}")
@@ -136,7 +139,6 @@ def satellite_data(download_path:Path , gas: str):
 
     if not client.check_authentication():
         raise ValueError("Authentification failed. Load website and agree to terms")  # noqa: TRY003
-
 
     target = download_path / f"obs4mips_x{gas}.zip"
     dataset = "satellite-methane"

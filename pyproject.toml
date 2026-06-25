@@ -8,7 +8,7 @@ dependencies = [
     "jupyterlab>=4.0.0",
     "jupytext>=1.15.2",
     "xarray>=2024.0.0",
-    "matplotlib>=3.8.0", 
+    "matplotlib>=3.8.0",
 ]
 name = "local"
 version = "0.1.0"
