@@ -7,13 +7,15 @@ dependencies = [
     "pre-commit>=3.3.1",
     "jupyterlab>=4.0.0",
     "jupytext>=1.15.2",
+    "xarray>=2024.0.0",
+    "matplotlib>=3.8.0", 
 ]
 name = "local"
 version = "0.1.0"
 description = "Compare satellite and ground-based measurements of GHG emissions using a basic fit"
 readme = "README.md"
 
-[tool.pixi.project]
+[tool.pixi.workspace]
 channels = [
     "conda-forge",
 ]
@@ -38,6 +40,9 @@ source-include = [
 
 [tool.pixi.pypi-dependencies]
 local = { path = ".", editable = true }
+
+[tool.pixi.dependencies]
+netcdf4 = ">=1.7.4,<2"
 
 
 [tool.jupytext]

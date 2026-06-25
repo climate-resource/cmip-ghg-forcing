@@ -1,14 +1,19 @@
 # Welcome to GHG forcing for CMIP
 
-Let's hit the ground running! This repo is currently used as an onboarding project meant to familiarize me with the basic concepts required to work on GHG forcing for CMIP. Specifically, comparing satellite and ground-based measurements of GHG emissions using a basic fit.
+This repo is currently used as an onboarding project meant to familiarize me with the basic concepts required to work on GHG forcing for CMIP. Specifically, comparing satellite and ground-based measurements of GHG emissions using a basic fit.
 
 In the future, this project should contain the clean, well documented pipeline to compute GHG forcings for CMIP.
 
 ## Status
 
--- Work in progress
+* Scripts to download data from NOAA and AGAGE in /download
+* Scripts for visualization of data in /visualization
+* Scripts for simple linear fits of NOAA data and AGAGE data, for each location
 
-## Onboarding on the project
+TODO:
+* Simple linear fit for all locations together
+* Look into more complex fits including seasonality
+
 
 ### Download data
 In the download folder, you can run each of the scripts there to download the corresponding datasets. 

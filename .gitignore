@@ -14,6 +14,10 @@ __pycache__/
 
 # pixi stuff
 .pixi
+pixi.lock
+
+# vscode stuff
+.vscode
 
 # Distribution / packaging
 .Python

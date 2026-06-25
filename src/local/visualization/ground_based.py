@@ -3,90 +3,42 @@ Plotting trends for CH4 for all ground based observation stations from NOAA
 
 """
 
-import xarray as xr
-import matplotlib.pyplot as plt 
-import numpy as np
+from pathlib import Path
 
-ground_path = '/home/anna_lanteri/data/ground_based_data/NOAA/ch4_surface-insitu_ccgg_netCDF/'
+import matplotlib.pyplot as plt
+import numpy as np
+import xarray as xr
+
+data_path = Path('/home/anna_lanteri/data/ground_based_data/NOAA/ch4_surface-insitu_ccgg_netCDF/')  # noqa: E501
 plots_path = '/home/anna_lanteri/code/cmip-ghg-forcing/plots/'
 
 # Mauna Loa, Hawaii, 01/1987
-mlo_path = f"{ground_path}/ch4_mlo_surface-insitu_1_ccgg_MonthlyData.nc"
 # Mauna Kea, Hawaii, 12/2022
-mko_path = f"{ground_path}/ch4_mko_surface-insitu_1_ccgg_MonthlyData.nc"
 # American Samoa, 04/2025
-smo_path = f"{ground_path}/ch4_smo_surface-insitu_1_ccgg_MonthlyData.nc"
 # Utqiaġvik, Alaska, 04/1987
-brw_path = f"{ground_path}/ch4_brw_surface-insitu_1_ccgg_MonthlyData.nc"
-
-mlo_data = xr.open_dataset(mlo_path)
-mko_data = xr.open_dataset(mko_path)
-smo_data = xr.open_dataset(smo_path)
-brw_data = xr.open_dataset(brw_path)
-
-#mlo_data['value'] = mlo_data.where(mlo_data['value'] >=0, np.nan)
-#mko_data['value'] = mko_data.where(mko_data['value'] >=0, np.nan)
-#smo_data['value'] = smo_data.where(smo_data['value'] >=0, np.nan)
-#brw_data['value'] = brw_data.where(brw_data['value'] >=0, np.nan)
-
-# TODO: filter better
-mlo_ch4 = mlo_data['value'][3:]
-mko_ch4 = mko_data['value'][3:]
-smo_ch4 = smo_data['value'][3:]
-brw_ch4 = brw_data['value'][3:]
-
-mlo_time = mlo_data['time'][3:]
-mko_time = mko_data['time'][3:]
-smo_time = smo_data['time'][3:]
-brw_time = brw_data['time'][3:]
-
-mlo_std = mlo_data['value_std_dev'][3:]
-mko_std = mko_data['value_std_dev'][3:]
-smo_std = smo_data['value_std_dev'][3:]
-brw_std = brw_data['value_std_dev'][3:]
-
-plt.plot(mlo_time, mlo_ch4, label = 'mlo')
-plt.plot(mko_time, mko_ch4, label = 'mko')
-plt.plot(smo_time, smo_ch4, label = 'smo')
-plt.plot(brw_time, brw_ch4, label = 'brw')
 
 
+def plot_trends(files, title, save_file):
+    """Plot trends of NOAA ground based obs"""
+    colors = ['blue', 'orange', 'green', 'red']
+    for file, color in zip(files, colors):
+        ds = xr.open_dataset(file)
+        ds['value'] = ds['value'].where(ds['value'] >=0, np.nan)
+        plt.plot(ds['time'], ds['value'], label = file.stem)
 
-plt.fill_between(
-    mlo_time,  
-    mlo_ch4 - mlo_std, 
-    mlo_ch4 + mlo_std,  
-    alpha=0.2,
-    color='blue',  
-)
+        plt.fill_between(
+            ds['time'],
+            ds['value'] - ds['value_std_dev'],
+            ds['value'] + ds['value_std_dev'],
+            alpha=0.2,
+            color=color,
+        )
 
-plt.fill_between(
-    mko_time,  
-    mko_ch4 - mko_std, 
-    mko_ch4 + mko_std,  
-    alpha=0.2,
-    color='orange',  
-)
+    plt.legend()
 
-plt.fill_between(
-    smo_time,  
-    smo_ch4 - smo_std, 
-    smo_ch4 + smo_std,  
-    alpha=0.2,
-    color='green',  
-)
+    plt.title(title)
+    plt.savefig(f"{plots_path}{save_file}.png", format = 'png')
 
+files = sorted(data_path.glob('ch4_*_MonthlyData.nc'))
 
-plt.fill_between(
-    brw_time,
-    brw_ch4 - brw_std, 
-    brw_ch4 + brw_std, 
-    alpha=0.2,  
-    color='red',  
-)
-
-plt.legend()
-plt.title('Ground based obs')
-plt.savefig(f"{plots_path}NOAA_gb_trends.png", format = 'png')
-
-
+plot_trends(files, title='Ground based obs', save_file='NOAA_gb_trends')
