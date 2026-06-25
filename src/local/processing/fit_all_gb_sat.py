@@ -73,3 +73,5 @@ if __name__ == "__main__":
     gb_fit = (a + b * all_lat) * all_sat
 
     plot_fit_to_obs(all_gb, gb_fit, title="observed_vs_fitted_latfit")
+
+    ## Add non-linearity to fit

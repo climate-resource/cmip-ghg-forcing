@@ -54,7 +54,35 @@ def get_noaa_files(specie="ch4"):
     return sorted(NOAA_data_path.glob(f"{specie}_*_MonthlyData.nc"))
 
 
-def get_all_matched_data(files, sat_data, specie="ch4"):
+def get_matched_data(gb, sat, specie="ch4"):
+    """Get matched data for one set of gb data"""
+    if "mf" in gb:
+        # AGAGE style
+        lat_name = "inlet_latitude"
+        sat_matched, gb_matched = get_matching_data(gb, sat, specie=specie)
+        station_lat = float(gb.attrs[lat_name])
+    elif "value" in gb:
+        # NOAA style
+        lat_name = "site_latitude"
+        sat_ground = get_sat_data_at_ground_coords(
+            gb, sat, lat_name=lat_name, lon_name="site_longitude"
+        )
+        mask_ground = make_sat_times_mask(gb, sat_ground)
+        gb_matched = gb["value"][mask_ground] / 1e9
+        mask_sat = make_ground_times_mask(gb, sat_ground)
+        sat_matched = (
+            sat_ground["x" + specie][mask_sat].dropna(dim="time").squeeze().values
+        )
+        station_lat = float(gb.attrs[lat_name])
+    else:
+        gb_matched = np.nan
+        sat_matched = np.nan
+        station_lat = np.nan
+
+    return gb_matched, sat_matched, station_lat
+
+
+def get_all_matched_data(files, sat, specie="ch4"):
     """Get all matched satellite and ground obs"""
     all_sat = []
     all_gb = []
@@ -64,35 +92,12 @@ def get_all_matched_data(files, sat_data, specie="ch4"):
         gb = xr.open_dataset(file)
 
         try:
-            if "mf" in gb:
-                # AGAGE style
-                lat_name = "inlet_latitude"
-                sat_matched, gb_matched = get_matching_data(gb, sat_data, specie=specie)
-
-            elif "value" in gb:
-                # NOAA style
-                lat_name = "site_latitude"
-                sat_ground = get_sat_data_at_ground_coords(
-                    gb, sat_data, lat_name=lat_name, lon_name="site_longitude"
-                )
-                mask_ground = make_sat_times_mask(gb, sat_ground)
-                gb_matched = gb["value"][mask_ground] / 1e9
-
-                mask_sat = make_ground_times_mask(gb, sat_ground)
-                sat_matched = (
-                    sat_ground["x" + specie][mask_sat]
-                    .dropna(dim="time")
-                    .squeeze()
-                    .values
-                )
+            gb_matched, sat_matched, station_lat = get_matched_data(gb, sat, specie)
 
             if not sat_matched.size == 0:
                 all_sat.append(np.asarray(sat_matched).ravel())
                 all_gb.append(np.asarray(gb_matched).ravel())
-
                 n = len(sat_matched)
-                station_lat = float(gb.attrs[lat_name])
-
                 all_lat.append(np.full(n, station_lat))
 
         finally:
@@ -139,7 +144,12 @@ def get_matching_data(gb, sat, specie="ch4"):
     gb_mask = np.isin(gb_times, common_times)
     sat_mask = np.isin(sat_times, common_times)
 
-    return sat_values[sat_mask], gb_values[gb_mask]
+    gb_matched = gb_values[gb_mask]
+    sat_matched = sat_values[sat_mask]
+
+    valid = np.isfinite(gb_matched) & np.isfinite(sat_matched)
+
+    return sat_matched[valid], gb_matched[valid]
 
 
 def get_sat_data_at_ground_coords(
@@ -178,6 +188,11 @@ def extract_ground_data(gb):
     return times, values
 
 
+def get_station_code(filename):
+    """Return station code after first _"""
+    return Path(filename).stem.split("_")[1]
+
+
 #########################
 ## FIT UTILS
 #########################
@@ -213,6 +228,8 @@ def linear_fit_lat(gb, sat, lat):
 #########################
 ## PLOT UTILS
 #########################
+
+# TODO: remove ch4 references
 
 
 def plot_fit(sat, gb, sf, station_name):
