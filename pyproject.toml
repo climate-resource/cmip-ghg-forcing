@@ -43,6 +43,8 @@ local = { path = ".", editable = true }
 
 [tool.pixi.dependencies]
 netcdf4 = ">=1.7.4,<2"
+ecmwf-api-client = ">=1.7.0,<2"
+cdsapi = ">=0.7.7"
 
 
 [tool.jupytext]

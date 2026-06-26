@@ -13,27 +13,42 @@ from local.processing.utils import (
     get_sat_data,
     get_station_code,
     linear_fit,
+    linear_fit_intercept,
     plot_fit,
+    plot_fit_intercept,
 )
 
+gas = "co2"
 data_path = Path(
-    "/home/anna_lanteri/data/ground_based_data/NOAA/ch4_surface-insitu_ccgg_netCDF/"
+    f"/home/anna_lanteri/data/ground_based_data/NOAA/{gas}_surface-insitu_ccgg_netCDF/"
 )
+
 
 if __name__ == "__main__":
-    specie = "ch4"
 
     # NOAA datasets
-    files = sorted(data_path.glob(f"{specie}_*_MonthlyData.nc"))
+    files = sorted(data_path.glob(f"{gas}_*_MonthlyData.nc"))
+    print(gas)
+    print(len(files))
 
     # OBD4MIPs
-    sat_data = get_sat_data(specie)
+    sat = get_sat_data(gas)
     for file in files:
-        gb = xr.open_dataset(file)
-        gb_matched, sat_matched, _ = get_matched_data(gb, sat_data, specie)
-        sf = linear_fit(gb_matched, sat_matched).values
-        print(f"Scaling factor sf = {sf}")
-
         station_name = get_station_code(file)
+        print(station_name)
+
+        gb = xr.open_dataset(file)
+        gb["value"] = gb["value"].where(gb["value"] >= 0, np.nan)
+        sat[f"x{gas}"] = sat[f"x{gas}"].where(sat[f"x{gas}"] >= 0, np.nan)
+
+        gb_matched, sat_matched, _ = get_matched_data(gb, sat, gas)
+
+        #sf = linear_fit(gb_matched, sat_matched).values
+        sf, intercept = linear_fit_intercept(gb_matched, sat_matched)
+
+        print(f"Scaling factor sf = {sf}")
+        print(f"Intercept: {intercept}")
+
         if not np.isnan(sf):
-            plot_fit(sat_matched, gb_matched, sf, station_name)
+            #plot_fit(sat_matched, gb_matched, sf, gas, station_name)
+            plot_fit_intercept(sat_matched, gb_matched, sf, intercept, gas, station_name)

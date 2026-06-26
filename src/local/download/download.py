@@ -11,7 +11,8 @@ import httpx
 import pandas as pd
 import requests
 
-# pip install ecmwf-api-client ecmwf-datastores-client
+# See the link below for instructions:
+# https://cds.climate.copernicus.eu/how-to-api#
 from ecmwf.datastores import Client  # type: ignore
 
 client = Client()
@@ -38,15 +39,21 @@ def NOAA_ground_based_data(download_path, config):
     print(f"Response status code: {response.status_code}")
     response.raise_for_status()
 
+    url = f"{base_url}{gas}/{folder}/surface/{gas}_surface-{sampling}_ccgg_netCDF.zip"
+
+    response = requests.get(url, timeout=10)
+    print(f"Request URL: {url}")
+    print(f"Response status code: {response.status_code}")
+    response.raise_for_status()
     with open(download_path / f"noaa_{gas}_surface_{sampling}.zip", "wb") as f:
         f.write(response.content)
 
     logging.info(f"downloaded NOAA-zip ({gas}-{sampling}) to {download_path!s}")
 
 
-def AGAGE_ground_based_data(save_to_path: Path) -> None:
+def AGAGE_ground_based_data(save_to_path: Path, gas: str) -> None:
     """
-    Download methane concentrations from (A)GAGE database
+    Download ghg concentrations from (A)GAGE database
 
     Parameters
     ----------
@@ -54,6 +61,9 @@ def AGAGE_ground_based_data(save_to_path: Path) -> None:
         path where data should be stored
 
     """
+    if gas != "ch4":
+        raise ValueError("Gas_not_supported")
+
     os.makedirs(save_to_path, exist_ok=True)
 
     r_compounds = httpx.get(
@@ -141,7 +151,10 @@ def satellite_data(download_path: Path, gas: str):
         raise ValueError("Authentification failed. Load website and agree to terms")  # noqa: TRY003
 
     target = download_path / f"obs4mips_x{gas}.zip"
-    dataset = "satellite-methane"
+    if gas == "ch4":
+        dataset = "satellite-methane"
+    elif gas == "co2":
+        dataset = "satellite-carbon-dioxide"
     client.retrieve(dataset, request, target=str(target))
 
     return logging.info(f"downloaded OBS4MIPs {gas} data to {target!s}")

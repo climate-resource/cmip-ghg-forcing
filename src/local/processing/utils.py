@@ -14,24 +14,25 @@ plots_path = "/home/anna_lanteri/code/cmip-ghg-forcing/plots/"
 #########################
 ## DATA PROCESSING UTILS
 #########################
+sat_default = 1.0e20
 
-
-def get_sat_data(specie="ch4"):
+def get_sat_data(gas="ch4"):
     """Get sat data of given specie"""
     sat_path = "/home/anna_lanteri/data/satellite_data/OBS4MIPs/"
     file_end = "-GHG_PRODUCTS-MERGED-MERGED-OBS4MIPS-MERGED-v4.6.nc"
 
-    specie = "x" + specie
-    if specie == "xch4":
+    gas = "x" + gas
+    if gas == "xch4":
         specie_file_name = "XCH4"
-    elif specie == "xco2":
+    elif gas == "xco2":
         specie_file_name = "XCO2"
 
-    sat_default = 1.0e20
     sat_data = xr.open_dataset(
         f"{sat_path}/200301_202312-C3S-L3_{specie_file_name}{file_end}"
     )
-    sat_data[specie] = sat_data[specie].where(sat_data[specie] != sat_default, np.nan)
+    sat_data[gas] = sat_data[gas].where(sat_data[gas] != sat_default, np.nan)
+    sat_data[gas] = sat_data[gas].where(sat_data[gas] >0, np.nan)
+
     return sat_data
 
 
@@ -53,26 +54,44 @@ def get_noaa_files(specie="ch4"):
     )
     return sorted(NOAA_data_path.glob(f"{specie}_*_MonthlyData.nc"))
 
+def get_scaling(gas: str):
+    """Scaling factor for the gas between satellite and gb"""
+    if gas == 'ch4':
+        scaling = 1e9
+    elif gas == 'co2':
+        scaling = 1e6
+    else:
+        raise ValueError("gas_not_supported")
+    return scaling
 
-def get_matched_data(gb, sat, specie="ch4"):
+def get_matched_data(gb, sat, gas="ch4"):
     """Get matched data for one set of gb data"""
+    scaling = get_scaling(gas)
+
     if "mf" in gb:
         # AGAGE style
         lat_name = "inlet_latitude"
-        sat_matched, gb_matched = get_matching_data(gb, sat, specie=specie)
+        sat_matched, gb_matched = get_matching_data(gb, sat, gas=gas)
         station_lat = float(gb.attrs[lat_name])
     elif "value" in gb:
         # NOAA style
+        gb["value"] = gb["value"].where(gb["value"] >= 0, np.nan)
+        sat["x" + gas] = sat["x" + gas].where(sat["x" + gas] >= 0, np.nan)
+        sat["x" + gas] = sat["x" + gas].where(sat["x" + gas] != sat_default, np.nan)
+
         lat_name = "site_latitude"
         sat_ground = get_sat_data_at_ground_coords(
             gb, sat, lat_name=lat_name, lon_name="site_longitude"
         )
-        mask_ground = make_sat_times_mask(gb, sat_ground)
-        gb_matched = gb["value"][mask_ground] / 1e9
+        mask_ground = make_sat_times_mask(gb, sat_ground, gas)
+        gb_matched = gb["value"][mask_ground] / scaling
         mask_sat = make_ground_times_mask(gb, sat_ground)
         sat_matched = (
-            sat_ground["x" + specie][mask_sat].dropna(dim="time").squeeze().values
+            sat_ground["x" + gas][mask_sat].dropna(dim="time").squeeze().values
         )
+        print('checking selection')
+        print(sat_matched.size)
+        print(gb_matched.size)
         station_lat = float(gb.attrs[lat_name])
     else:
         gb_matched = np.nan
@@ -112,9 +131,9 @@ def get_all_matched_data(files, sat, specie="ch4"):
     return all_sat[mask], all_gb[mask], all_lat[mask]
 
 
-def make_sat_times_mask(gb_data, sat_data, specie="ch4"):
+def make_sat_times_mask(gb_data, sat_data, gas="ch4"):
     """Return mask of valid times with sat values"""
-    valid_sat_times = sat_data.time.values[~np.isnan(sat_data["x" + specie].values)]
+    valid_sat_times = sat_data.time.values[~np.isnan(sat_data["x" + gas].values)]
     gb_time = gb_data["time"]
 
     return np.isin(gb_time, valid_sat_times)
@@ -128,16 +147,16 @@ def make_ground_times_mask(gb_data, sat_data):
     return np.isin(sat_time, valid_ground_times)
 
 
-def get_matching_data(gb, sat, specie="ch4"):
+def get_matching_data(gb, sat, gas="ch4"):
     """Return matched satellite and ground observations."""
     sat_ground = get_sat_data_at_ground_coords(gb, sat)
 
-    gb_times, gb_values = extract_ground_data(gb)
+    gb_times, gb_values = extract_ground_data(gb, gas)
 
-    valid_sat = np.isfinite(sat_ground["x" + specie].values)
+    valid_sat = np.isfinite(sat_ground["x" + gas].values)
 
     sat_times = sat_ground.time.values[valid_sat]
-    sat_values = sat_ground["x" + specie].values[valid_sat]
+    sat_values = sat_ground["x" + gas].values[valid_sat]
 
     common_times = np.intersect1d(gb_times, sat_times)
 
@@ -170,17 +189,19 @@ def set_sat_time_at_start_of_month(sat_data):
     )
 
 
-def extract_ground_data(gb):
+def extract_ground_data(gb, gas :str):
     """Return (times, values) regardless of dataset structure."""
+    scaling = get_scaling(gas)
+
     if "mf" in gb:
         # AGAGE style
         times = gb.time.values
-        values = gb["mf"].values / 1e9
+        values = gb["mf"].values / scaling
 
     elif "value" in gb:
         # obs dimension style
         times = gb["time"].values
-        values = gb["value"].values / 1e9
+        values = gb["value"].values / scaling
 
     else:
         raise ValueError("Unknown ground dataset format")  # noqa: TRY003
@@ -206,6 +227,22 @@ def linear_fit(gb, sat):
     """
     return np.sum(sat * gb) / np.sum(sat**2)
 
+def linear_fit_intercept(gb, sat):
+    """
+    Fit:
+
+    gb = sf * sat + inter
+    """
+    x = sat
+    y = gb
+
+    x_mean = np.mean(x)
+    y_mean = np.mean(y)
+
+    sf = np.sum((x - x_mean) * (y - y_mean)) / np.sum((x - x_mean)**2)
+    intercept = y_mean - sf * x_mean
+
+    return sf.values, intercept.values
 
 def linear_fit_lat(gb, sat, lat):
     """
@@ -229,24 +266,56 @@ def linear_fit_lat(gb, sat, lat):
 ## PLOT UTILS
 #########################
 
-# TODO: remove ch4 references
-
-
-def plot_fit(sat, gb, sf, station_name):
+def plot_fit(sat, gb, sf, gas, station_name):
     """Plot the fit against scatterplot"""
+    if gas == 'co2':
+        uppercase_gas = "CO2"
+    elif gas == 'ch4':
+        uppercase_gas = "CH4"
+    else:
+        raise ValueError("gas_not_supported")
+
     plt.scatter(sat, gb, label="measurements")
 
     x = np.linspace(sat.min(), sat.max(), 100)
-    plt.plot(x, sf * x, "r-", label=f"fit: gb = {sf:.3f} * sat")
+    plt.plot(x, sf * x, "r-", label=f"fit: gb = {sf} * sat")
 
-    plt.xlabel("Satellite XCH4")
-    plt.ylabel(f"{station_name} CH4")
+    plt.xlabel(f"Satellite X{uppercase_gas}")
+    plt.ylabel(f"{station_name} {uppercase_gas}")
     plt.legend()
     plt.grid(True)
 
-    plt.savefig(f"{plots_path}{station_name}_vs_sat_fit.png", dpi=300)
+    plt.savefig(f"{plots_path}{station_name}_vs_sat_fit_{gas}.png", dpi=300)
     plt.close()
 
+def plot_fit_intercept(sat, gb, sf, intercept, gas, station_name):
+    """Plot the fit with the intercept"""
+    if gas == "co2":
+        uppercase_gas = "CO2"
+    elif gas == "ch4":
+        uppercase_gas = "CH4"
+    else:
+        raise ValueError("gas_not_supported")
+
+    plt.scatter(sat, gb, label="measurements")
+
+    x = np.linspace(sat.min(), sat.max(), 100)
+    y = sf * x + intercept
+
+    plt.plot(
+        x,
+        y,
+        "r-",
+        label=f"fit: gb = {sf:.3f} * sat + {intercept:.3f}",
+    )
+
+    plt.xlabel(f"Satellite X{uppercase_gas}")
+    plt.ylabel(f"{station_name} {uppercase_gas}")
+    plt.legend()
+    plt.grid(True)
+
+    plt.savefig(f"{plots_path}{station_name}_vs_sat_fit_{gas}.png", dpi=300)
+    plt.close()
 
 def plot_fit_to_obs(obs, fit, title="observed_vs_fitted_latfit"):
     """Plot fit against observations"""

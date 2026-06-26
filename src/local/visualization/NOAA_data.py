@@ -9,8 +9,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
+gas = 'co2'
+
 data_path = Path(
-    "/home/anna_lanteri/data/ground_based_data/NOAA/ch4_surface-insitu_ccgg_netCDF/"
+    f"/home/anna_lanteri/data/ground_based_data/NOAA/{gas}_surface-insitu_ccgg_netCDF/"
 )
 plots_path = "/home/anna_lanteri/code/cmip-ghg-forcing/plots/"
 
@@ -18,7 +20,6 @@ plots_path = "/home/anna_lanteri/code/cmip-ghg-forcing/plots/"
 # Mauna Kea, Hawaii, 12/2022
 # American Samoa, 04/2025
 # Utqiaġvik, Alaska, 04/1987
-
 
 def plot_trends(files, title, save_file):
     """Plot trends of NOAA ground based obs"""
@@ -42,6 +43,6 @@ def plot_trends(files, title, save_file):
     plt.savefig(f"{plots_path}{save_file}.png", format="png")
 
 
-files = sorted(data_path.glob("ch4_*_MonthlyData.nc"))
+files = sorted(data_path.glob(f"{gas}_*_MonthlyData.nc"))
 
 plot_trends(files, title="Ground based obs", save_file="NOAA_gb_trends")

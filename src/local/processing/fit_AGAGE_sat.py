@@ -19,7 +19,7 @@ from local.processing.utils import (
 agage_data_path = Path("/home/anna_lanteri/data/ground_based_data/AGAGE/")
 
 if __name__ == "__main__":
-    specie = "ch4"
+    specie = "co2" # ch4
 
     agage_files = sorted(agage_data_path.glob("*" + specie + "*-20251230.nc"))
     agage_files.append(

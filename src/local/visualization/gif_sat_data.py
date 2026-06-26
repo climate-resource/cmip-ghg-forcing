@@ -10,24 +10,32 @@ import xarray as xr
 from PIL import Image
 
 sat_default = 1.0e20
+gas = 'co2'
+sat_gas = f"x{gas}"
+
+if gas == 'co2':
+    uppercase_gas = "CO2"
+elif gas == 'ch4':
+    uppercase_gas = "CH4"
+else:
+    raise ValueError("gas_not_supported")
 
 plots_path = "/home/anna_lanteri/code/cmip-ghg-forcing/plots/"
 
 sat_path = "/home/anna_lanteri/data/satellite_data/OBS4MIPs/"
 sat_data = xr.open_dataset(
-    f"{sat_path}/200301_202312-C3S-L3_XCH4-GHG_PRODUCTS\
-                           -MERGED-MERGED-OBS4MIPS-MERGED-v4.6.nc"
+    f"{sat_path}/200301_202312-C3S-L3_X{uppercase_gas}-GHG_PRODUCTS-MERGED-MERGED-OBS4MIPS-MERGED-v4.6.nc"
 )
-sat_data["xch4"] = sat_data["xch4"].where(sat_data["xch4"] != sat_default, np.nan)
+sat_data[sat_gas] = sat_data[sat_gas].where(sat_data[sat_gas] != sat_default, np.nan)
 
-data = sat_data["xch4"]
+data = sat_data[sat_gas]
 
 frames = []
 
 for i in range(len(data["time"])):
     plt.figure(figsize=(10, 6))
     data[i, :, :].plot()
-    plt.title(f"xch4 - Month {i + 1}")
+    plt.title(f"{sat_gas} - Month {i + 1}")
 
     temp_file = f"temp_frame_{i}.png"
     plt.savefig(temp_file, format="png", bbox_inches="tight", dpi=100)
@@ -35,7 +43,7 @@ for i in range(len(data["time"])):
 
     frames.append(Image.open(temp_file))
 
-gif_path = plots_path + "xch4_all_months.gif"
+gif_path = f"{plots_path}/{sat_gas}_all_months.gif"
 
 frames[0].save(
     gif_path,
