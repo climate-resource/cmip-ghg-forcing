@@ -12,9 +12,7 @@ from local.processing.utils import (
     get_matched_data,
     get_sat_data,
     get_station_code,
-    linear_fit,
     linear_fit_intercept,
-    plot_fit,
     plot_fit_intercept,
 )
 
@@ -25,7 +23,6 @@ data_path = Path(
 
 
 if __name__ == "__main__":
-
     # NOAA datasets
     files = sorted(data_path.glob(f"{gas}_*_MonthlyData.nc"))
     print(gas)
@@ -39,16 +36,17 @@ if __name__ == "__main__":
 
         gb = xr.open_dataset(file)
         gb["value"] = gb["value"].where(gb["value"] >= 0, np.nan)
-        sat[f"x{gas}"] = sat[f"x{gas}"].where(sat[f"x{gas}"] >= 0, np.nan)
 
         gb_matched, sat_matched, _ = get_matched_data(gb, sat, gas)
 
-        #sf = linear_fit(gb_matched, sat_matched).values
+        # sf = linear_fit(gb_matched, sat_matched).values
         sf, intercept = linear_fit_intercept(gb_matched, sat_matched)
 
         print(f"Scaling factor sf = {sf}")
         print(f"Intercept: {intercept}")
 
         if not np.isnan(sf):
-            #plot_fit(sat_matched, gb_matched, sf, gas, station_name)
-            plot_fit_intercept(sat_matched, gb_matched, sf, intercept, gas, station_name)
+            # plot_fit(sat_matched, gb_matched, sf, gas, station_name)
+            plot_fit_intercept(
+                sat_matched, gb_matched, sf, intercept, gas, station_name
+            )

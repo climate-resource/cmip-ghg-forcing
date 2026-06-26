@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
-gas = 'co2'
+gas = "co2"
 
 data_path = Path(
     f"/home/anna_lanteri/data/ground_based_data/NOAA/{gas}_surface-insitu_ccgg_netCDF/"
@@ -23,26 +23,33 @@ plots_path = "/home/anna_lanteri/code/cmip-ghg-forcing/plots/"
 
 def plot_trends(files, title, save_file):
     """Plot trends of NOAA ground based obs"""
-    colors = ["blue", "orange", "green", "red"]
-    for file, color in zip(files, colors):
+    fig, ax = plt.subplots()
+
+    for file in files:
         ds = xr.open_dataset(file)
         ds["value"] = ds["value"].where(ds["value"] >= 0, np.nan)
-        plt.plot(ds["time"], ds["value"], label=file.stem)
 
-        plt.fill_between(
+        # Plot the line and get its color
+        line, = ax.plot(ds["time"], ds["value"], label=file.stem)
+        color = line.get_color()
+
+        # Use the same color for the uncertainty band
+        ax.fill_between(
             ds["time"],
             ds["value"] - ds["value_std_dev"],
             ds["value"] + ds["value_std_dev"],
-            alpha=0.2,
             color=color,
+            alpha=0.2,
         )
 
-    plt.legend()
+    ax.legend()
+    ax.set_title(title)
 
-    plt.title(title)
-    plt.savefig(f"{plots_path}{save_file}.png", format="png")
+    fig.savefig(f"{plots_path}{save_file}.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
 
 
 files = sorted(data_path.glob(f"{gas}_*_MonthlyData.nc"))
+print(len(files))
 
 plot_trends(files, title="Ground based obs", save_file="NOAA_gb_trends")

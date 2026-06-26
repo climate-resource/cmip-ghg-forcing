@@ -7,12 +7,12 @@ import numpy as np
 import xarray as xr
 
 sat_default = 1.0e20
-gas = 'co2'
+gas = "co2"
 sat_gas = f"x{gas}"
 
-if gas == 'co2':
+if gas == "co2":
     uppercase_gas = "CO2"
-elif gas == 'ch4':
+elif gas == "ch4":
     uppercase_gas = "CH4"
 else:
     raise ValueError("gas_not_supported")
