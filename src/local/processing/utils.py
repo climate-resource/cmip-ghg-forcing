@@ -55,6 +55,48 @@ def get_noaa_files(gas:str):
     )
     return sorted(NOAA_data_path.glob(f"{gas}_*_MonthlyData.nc"))
 
+def get_noaa_flask_files(gas:str):
+    """Get NOAA flask data for a given specie"""
+    method = "flask"
+
+    data_path = Path(
+        f"/home/anna_lanteri/data/ground_based_data/NOAA/{gas}_surface-{method}_ccgg_netCDF/"
+    )
+
+    return sorted(data_path.glob(f"{gas}_*_event.nc"))
+
+def filter_qc(
+    ds,
+    filter_config,
+    qc_var="qcflag"
+):
+    """
+    Filter an xarray Dataset based on NOAA 3-character QC flags.
+    """
+    # Convert bytes -> unicode strings if needed
+    flags = ds[qc_var].astype(str)
+
+    mask = xr.ones_like(flags, dtype=bool)
+
+    if filter_config['reject']:
+        mask &= flags.str[0] == "."
+
+    if filter_config['selection']:
+        mask &= flags.str[1] == "."
+
+    if filter_config['information']:
+        mask &= flags.str[2] == "."
+
+    return ds.where(mask, drop=True)
+
+
+filter_config = {
+    'reject':True,
+    'selection':False,
+    'information':False,
+}
+
+
 
 def get_scaling(gas:str):
     """Scaling factor for the gas between satellite and gb"""
@@ -67,22 +109,31 @@ def get_scaling(gas:str):
     return scaling
 
 
-def get_matched_data(gb:xr.Dataset, sat:xr.Dataset, gas:str):
+def get_matched_data(gb:xr.Dataset, sat:xr.Dataset, gas:str, flask:bool= False):
     """Get matched data for one set of gb data"""
     scaling = get_scaling(gas)
+
+    sat["x" + gas] = sat["x" + gas].where(sat["x" + gas] >= 0, np.nan)
+    sat["x" + gas] = sat["x" + gas].where(sat["x" + gas] != sat_default, np.nan)
 
     if "mf" in gb:
         # AGAGE style
         lat_name = "inlet_latitude"
         sat_matched, gb_matched = get_matching_data(gb, sat, gas=gas)
         station_lat = float(gb.attrs[lat_name])
-    elif "value" in gb:
-        # NOAA style
+
+        return (
+            gb_matched,
+            sat_matched.squeeze(),
+            station_lat,
+        )
+    elif "value" in gb and not flask:
+        # NOAA gb style
         gb["value"] = gb["value"].where(gb["value"] >= 0, np.nan)
-        sat["x" + gas] = sat["x" + gas].where(sat["x" + gas] >= 0, np.nan)
-        sat["x" + gas] = sat["x" + gas].where(sat["x" + gas] != sat_default, np.nan)
 
         lat_name = "site_latitude"
+        station_lat = float(gb.attrs[lat_name])
+
         sat_ground = get_sat_data_at_ground_coords(gb, sat)
 
         mask_ground = make_sat_times_mask(gb, sat_ground, gas)
@@ -91,19 +142,62 @@ def get_matched_data(gb:xr.Dataset, sat:xr.Dataset, gas:str):
         sat_matched = (
             sat_ground["x" + gas][mask_sat].dropna(dim="time").squeeze().values
         )
-        print("checking selection")
+        print("checking selection: should be the same")
         print(sat_matched.size)
         print(gb_matched.size)
+
+        return (
+            gb_matched.values,
+            sat_matched,
+            station_lat,
+        )
+    elif "value" in gb and flask:
+        # NOAA flask data
+        gb["value"] = gb["value"].where(gb["value"] > 0, np.nan)
+        gb = filter_qc(gb, filter_config, qc_var="qcflag")
+
+        lat_name = "site_latitude"
         station_lat = float(gb.attrs[lat_name])
+
+        sat_ground = get_sat_data_at_ground_coords(gb, sat)
+
+        # Monthly mean of ground observations
+        gb_monthly = (
+            gb["value"]
+            .assign_coords(time=gb["time"])
+            .resample(time="MS")
+            .mean()
+            / scaling
+        )
+
+        sat_monthly = sat_ground["x" + gas]
+
+        gb_monthly, sat_monthly = xr.align(
+            gb_monthly,
+            sat_monthly,
+            join="inner",
+        )
+
+        valid = (~gb_monthly.isnull()) & (~sat_monthly.isnull())
+
+        gb_matched = gb_monthly.where(valid, drop=True)
+        sat_matched = sat_monthly.where(valid, drop=True)
+
+        print("checking selection: should be the same")
+        print(sat_matched.size)
+        print(gb_matched.size)
+
+        return (
+            gb_matched.values,
+            sat_matched.values.squeeze(),
+            station_lat,
+        )
+
     else:
-        gb_matched = np.nan
-        sat_matched = np.nan
-        station_lat = np.nan
-
-    return gb_matched, sat_matched, station_lat
+        return np.nan, np.nan, np.nan
 
 
-def get_all_matched_data(files:list[str], sat:xr.Dataset, gas:str):
+def get_all_matched_data(files:list[str], sat:xr.Dataset, gas:str, flask:bool = False):
     """Get all matched satellite and ground obs"""
     all_sat = []
     all_gb = []
@@ -111,9 +205,11 @@ def get_all_matched_data(files:list[str], sat:xr.Dataset, gas:str):
 
     for file in files:
         gb = xr.open_dataset(file)
-
+        if flask:
+            print('FLASK')
+            gb = filter_qc(gb, filter_config)
         try:
-            gb_matched, sat_matched, station_lat = get_matched_data(gb, sat, gas)
+            gb_matched, sat_matched, station_lat = get_matched_data(gb, sat, gas, flask)
 
             if not sat_matched.size == 0:
                 all_sat.append(np.asarray(sat_matched).ravel())

@@ -10,8 +10,15 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from local.processing.utils import extract_ground_data, get_sat_data, get_sat_data_at_ground_coords, get_scaling, get_station_code, make_sat_times_mask, set_time_at_start_of_month
-
+from local.processing.utils import (
+    extract_ground_data,
+    get_sat_data,
+    get_sat_data_at_ground_coords,
+    get_scaling,
+    get_station_code,
+    make_sat_times_mask,
+    set_time_at_start_of_month,
+)
 
 gas = "ch4"
 method = "flask"
@@ -102,7 +109,6 @@ def plot_matching_data(gb, sat, gas, station_name):
 
 def get_matching_data(gb, sat, gas):
     """Return matched monthly-mean ground and satellite observations."""
-
     sat_ground = get_sat_data_at_ground_coords(gb, sat)
 
     gb_times, gb_values = extract_ground_data(gb, gas)
